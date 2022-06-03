@@ -1,0 +1,471 @@
+---
+output:
+  html_document: default
+  pdf_document: default
+---
+
+# Part 1: Importing files, data wrangling, mathematical operations, plots and saving code on GitHub
+
+### 1. Read in the file, making the gene identifiers the row names. Show a table of values for the first six genes.
+
+Answer:
+I have downloaded the file from the given link. I have read the file and created table with 'read.table' function. I have used 'header' function for showing first six values.
+
+```{r}
+
+library("R.utils")
+
+
+URL="https://raw.githubusercontent.com/markziemann/SLE712_files/master/assessment_task3/bioinfo_asst3_part1_files/gene_expression.tsv"
+download.file(URL,destfile="gene_expression.tsv")
+
+dataset <- read.table("gene_expression.tsv", header = TRUE, row.names = 1)
+
+
+head(dataset,7)
+
+```
+
+```{r}
+print(summary(dataset))
+print(head(dataset,7))
+
+```
+
+### 2. Make a new column which is the mean of the other columns. Show a table of values for the first six genes.
+
+Answer: I have created a new column named "new_column" with averaging the other columns.
+
+```{r}
+
+dataset$new_column <- rowMeans(dataset[2:3], na.rm=TRUE)
+print(head(dataset,7))
+
+```
+
+### 3. List the 10 genes with the highest mean expression
+
+I have listed 10 genes with highest mean expression with "slice_max" function from "dplyr" library.
+
+```{r}
+library(dplyr)
+
+dataset %>% slice_max(new_column, n = 10)
+
+print(head(sort(dataset$new_column,decreasing=TRUE),n=10))
+
+```
+
+### 4. Determine the number of genes with a mean <10
+
+I have created a new subset of data with number of genes with a mean below 10. I have used "nrow" function to count the rows to determine the number count.
+
+```{r}
+
+gene_10 <- subset(dataset, dataset$new_column < 10)
+nrow(gene_10)
+
+```
+
+### 5. Make a histogram plot of the mean values and include it into your report.
+
+I have created a histogram of mean values from the new column.
+
+```{r}
+Mean_values <- dataset$new_column
+hist(Mean_values)
+
+```
+
+### 6. Import this csv file into an R object. What are the column names?
+
+I have imported new data set of "growth_data".
+
+```{r}
+URL="https://raw.githubusercontent.com/markziemann/SLE712_files/master/assessment_task3/bioinfo_asst3_part1_files/growth_data.csv"
+download.file(URL,destfile="growth_data.csv")
+
+growth_data <- read.csv("growth_data.csv")
+
+```
+I ahve created a data frame with the downloaded data table.
+
+```{r}
+gd_df <- data.frame(growth_data)
+
+
+```
+
+I have printed all the column names with the "colnames" function.
+
+```{r}
+print(colnames(gd_df))
+
+```
+
+```{r}
+summary(gd_df)
+
+```
+
+### 7. Calculate the mean and standard deviation of tree circumference at the start and end of the study at both sites.
+
+I have created two separate dataset for norteast and southwest sites.
+
+```{r}
+ne <- gd_df[gd_df$Site == 'northeast',] 
+sw <- gd_df[gd_df$Site == 'southwest',] 
+
+```
+
+
+I have generated standard deviation sd, and mean for each year on both sites.
+
+```{r}
+
+mean(ne$Circumf_2005_cm)
+mean(ne$Circumf_2020_cm)
+mean(sw$Circumf_2005_cm)
+mean(sw$Circumf_2020_cm)
+
+sd(ne$Circumf_2005_cm)
+sd(ne$Circumf_2020_cm)
+sd(sw$Circumf_2005_cm)
+sd(sw$Circumf_2020_cm)
+
+
+```
+
+### 8. Make a box plot of tree circumference at the start and end of the study at both sites.
+
+I have generated a box plot for tree circumference of every year (2005 + 2010 + 2015 + 2020) at both sides.
+
+```{r}
+library(lattice)
+bwplot(Circumf_2005_cm + Circumf_2010_cm + Circumf_2015_cm + Circumf_2020_cm ~ Site, data=gd_df, col = c("green","yellow"))
+```
+
+
+
+
+### 9. Calculate the mean growth over the last 10 years at each site.
+
+I have calculated mean growth using the formula with 2020 and 2010.
+
+```{r}
+ne_growth = (ne$Circumf_2020_cm - ne$Circumf_2010_cm)/ ne$Circumf_2010_cm
+
+
+```
+
+
+### 10. Use the t.test and wilcox.test functions to estimate the p-value that the 10 year growth is different at the two sites.
+
+I have calculated mean and sd for northeast and southwest sites for calculating t test and wilcox test.
+```{r}
+mean(ne_growth)
+sd(ne_growth)
+
+sw_growth = (sw$Circumf_2020_cm - sw$Circumf_2010_cm)/ sw$Circumf_2010_cm
+
+mean(sw_growth)
+sd(sw_growth)
+```
+
+```{r}
+ne_t <- c(rnorm(100, mean = 3.599971, sd = 1.276722))
+sw_t <- c(rnorm(100, mean = 3.422027, sd = 1.088191))
+
+t.test(ne_t, sw_t, paired = TRUE)
+
+wilcox.test(ne_t, sw_t, paired = TRUE)
+
+```
+
+From the result, we can see that p -value is greater than 0.05 in both tests, so we can not reject the null hypothesis. There fore, mean of both sites are similar.
+
+# Part2: Examining biological sequence diversity
+
+### 1. Download the whole set of coding DNA sequences for E. coli and your organism of interest. How many coding sequences are present in these organisms? How much coding DNA is there in total for these two organisms? Describe any differences between the two organisms.
+
+## I have selected Bifidobacteriaceae bacterium WP012 (GCA_003585625) for my study.
+
+In this example, I have used E.coli genomic sequence data. I have downloaded the data from the given link. I have used "R.utils" library. 
+
+```{r}
+library("R.utils")
+
+
+URL="http://ftp.ensemblgenomes.org/pub/bacteria/release-53/fasta/bacteria_0_collection/escherichia_coli_str_k_12_substr_mg1655_gca_000005845/cds/Escherichia_coli_str_k_12_substr_mg1655_gca_000005845.ASM584v2.cds.all.fa.gz"
+download.file(URL,destfile="ecoli_cds.fa.gz")
+
+```
+I have used "seqinr" library to read the file and used "head" command to show the number of the coding sequences.
+
+```{r}
+library("seqinr")
+coding_seq_ecoli <- seqinr::read.fasta("ecoli_cds.fa")
+str(head(coding_seq_ecoli))
+
+```
+
+```{r}
+length(coding_seq_ecoli)
+head(summary(coding_seq_ecoli))
+
+```
+
+Similarly, I have used Bacteria genomic sequence data. I have downloaded the data from the given link. I have used "R.utils" library.
+
+I have used "seqinr" library to read the file and used "head" command to show the number of the coding sequences.
+
+
+```{r}
+library("R.utils")
+
+
+URL="http://ftp.ensemblgenomes.org/pub/bacteria/release-53/fasta/bacteria_63_collection/bifidobacteriaceae_bacterium_wp012_gca_003585625/cds/Bifidobacteriaceae_bacterium_wp012_gca_003585625.ASM358562v1.cds.all.fa.gz"
+
+download.file(URL,destfile="bbacterium_cds.fa.gz")
+
+```
+
+
+```{r}
+library("seqinr")
+gunzip("bbacterium_cds.fa.gz")
+coding_seq_bb <- seqinr::read.fasta("bbacterium_cds.fa")
+str(head(coding_seq_bb))
+
+```
+
+```{r}
+length(coding_seq_bb)
+head(summary(coding_seq_bb))
+
+```
+There are huge difference of coding sequence. In Ecoli, it was 4239. But, the number is 1367 in bacteria.
+
+### 2. Calculate the length of all coding sequences in these two organisms. Make a boxplot of coding sequence length in these organisms. What is the mean and median coding sequence length of these two organisms? Describe any differences between the two organisms.
+
+```{r}
+head(summary(coding_seq_ecoli)[,1])
+
+len_cds_ecoli <- as.numeric(summary(coding_seq_ecoli)[,1])
+
+sum(len_cds_ecoli)
+```
+
+```{r}
+mean(len_cds_ecoli)
+median(len_cds_ecoli)
+boxplot(len_cds_ecoli,ylab="sequence length (bp)")
+```
+
+
+The length of Ecoli is 3978528. The mean is 938.5534 and median is 831.
+
+```{r}
+head(summary(coding_seq_bb)[,1])
+
+len_cds_bb <- as.numeric(summary(coding_seq_bb)[,1])
+
+sum(len_cds_bb)
+```
+
+```{r}
+mean(len_cds_bb)
+median(len_cds_bb)
+boxplot(len_cds_bb,ylab="sequence length (bp)")
+```
+
+
+On the otherhand, the length of bacteria organism is 1288341. Mean is 942.4587 and median is 783.
+
+### 3. Calculate the frequency of DNA bases in the total coding sequences for both organisms. Perform the same calculation for the total protein sequence. Create bar plots for nucleotide and amino acid frequency. Describe any differences between the two organisms.
+
+
+
+```{r}
+library("seqinr")
+library(plyr)
+GC(coding_seq_ecoli[[1]])
+
+seqinr::count(coding_seq_ecoli[[1]],1)
+
+summary(coding_seq_ecoli[1:3])
+sum(sapply(coding_seq_ecoli[1:3],length))
+length(unlist(coding_seq_ecoli[1:3]))
+dna <- unlist(coding_seq_ecoli)
+
+GC(dna)
+dna_composition <- seqinr::count(dna,1)
+
+
+
+```
+
+```{r}
+barplot(dna_composition,xlab="nucleotides",ylab="frequency", main="E coli CDS composition")
+
+```
+
+```{r}
+translate(coding_seq_ecoli[[1]])
+
+prot <- lapply(coding_seq_ecoli,translate)
+
+# define the amino acid alphabet
+aa <- unique(prot[[2]])
+aa <- aa[aa != "*"]
+length(aa)
+
+
+dna_prot <- unlist(coding_seq_ecoli)
+
+dna_composition_prot <- seqinr::count(dna_prot,1)
+
+```
+```{r}
+barplot(dna_composition_prot, xlab="amino acid",ylab="frequency", main="E coli prots composition")
+
+```
+
+In this case, I calculated with one sequence at first. Then, I have caculated with whole sequence. Total sum for Ecoli is 3462. On the other hand, total sum of bacteria organism is 3462. Boxplots provides a visualization of the difference of the sequences.
+
+
+```{r}
+library("seqinr")
+library(plyr)
+GC(coding_seq_bb[[1]])
+
+seqinr::count(coding_seq_bb[[1]],1)
+
+summary(coding_seq_bb[1:3])
+sum(sapply(coding_seq_bb[1:3],length))
+length(unlist(coding_seq_bb[1:3]))
+dna1 <- unlist(coding_seq_bb)
+
+GC(dna)
+dna_composition1 <- seqinr::count(dna1,1)
+
+
+
+```
+
+```{r}
+barplot(dna_composition1,xlab="nucleotides",ylab="frequency", main="BBacterium CDS composition")
+
+```
+
+```{r}
+translate(coding_seq_bb[[1]])
+
+prot1 <- lapply(coding_seq_bb,translate)
+
+# define the amino acid alphabet
+aa1 <- unique(prot[[2]])
+aa1 <- aa[aa != "*"]
+length(aa1)
+
+
+dna_prot1 <- unlist(coding_seq_bb)
+
+dna_composition_prot1 <- seqinr::count(dna_prot1,1)
+
+```
+```{r}
+barplot(dna_composition_prot1, xlab="amino acid",ylab="frequency", main="B bacterium prots composition")
+
+```
+
+
+
+### 4. Create a codon usage table and quantify the codon usage bias among all coding sequences. Describe any differences between the two organisms with respect to their codon usage bias. Provide charts to support your observations.
+
+```{r}
+uco(coding_seq_ecoli[[2]])
+
+uco(coding_seq_ecoli[[2]],index="rscu")
+uco(coding_seq_ecoli[[2]],index="rscu",as.data.frame=TRUE)
+
+```
+
+I have created codon usage table for both organism. Codon charts provides a visualization for both organisms.
+
+
+```{r}
+uco(coding_seq_bb[[2]])
+
+uco(coding_seq_bb[[2]],index="rscu")
+uco(coding_seq_bb[[2]],index="rscu",as.data.frame=TRUE)
+
+```
+
+### 5. In the organism of interest, identify 10 protein sequence k-mers of length 3-5 which are the most overand under-represented k-mers in your organism of interest. Are these k-mers also over- and under-represented in E. coli to a similar extent? Provide plots to support your observations. Why do you think these sequences are present at different levels in the genomes of these organisms?
+
+```{r}
+library(plyr)
+prots <- unlist(prot)
+
+mycounts <- seqinr::count(prots,wordsize=5,alphabet=aa)
+
+str(mycounts)
+
+```
+
+```{r}
+head(mycounts)
+
+```
+```{r}
+myfreq <- seqinr::count(prots,wordsize=3,alphabet=aa,freq=TRUE,10)
+
+myfreq
+```
+
+
+
+These are th 10 protein sequences for Ecoli:  AAA          AAC          AAD 
+1.018692e-03 1.385665e-04 4.324492e-04 
+         AAE          AAF          AAG 
+5.702543e-04 3.662114e-04 8.184558e-04 
+         AAH          AAI          AAK 
+1.690206e-04 6.570487e-04 4.415855e-04 
+         AAL
+1.213599e-03
+
+
+
+
+
+
+```{r}
+library(plyr)
+prots1 <- unlist(prot1)
+
+mycounts1 <- seqinr::count(prots1,wordsize=5,alphabet=aa)
+
+str(mycounts1)
+
+```
+
+```{r}
+head(mycounts1)
+
+```
+
+
+```{r}
+myfreq1 <- seqinr::count(prots1,wordsize=3,alphabet=aa,freq=TRUE,10)
+
+myfreq1
+```
+I have identified 10 protein sequenc k-mers for the B bacteria here:
+
+AAA          AAC          AAD          AAE 
+1.243883e-03 1.455109e-04 4.811247e-04 5.092881e-04 
+         AAF          AAG          AAH          AAI 
+3.332668e-04 7.463300e-04 1.971438e-04 6.336764e-04 
+         AAK          AAL          AAM          AAN 
+7.604117e-04 1.147658e-03
